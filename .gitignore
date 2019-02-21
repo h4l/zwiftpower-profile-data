@@ -1,0 +1,7 @@
+*.txt
+!requirements.txt
+*.json-stream
+*.json
+*.html
+*.ipynb
+.idea
