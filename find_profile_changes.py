@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Scan a stream of JSON profiles created by parse_profiles.py for height
-changes.
+changes. Produce descriptions of suspicious changes on stdout.
 
 Usage:
     find_profile_changes.py [options]
@@ -12,6 +12,9 @@ Options:
 
     --sort
         Sort the output by ZwiftPower points (descending)
+
+    --reencode
+        Treat input as existing descriptions and output according to --format
 """
 
 import csv
@@ -193,14 +196,14 @@ def output_json(descs, fileobj):
 def output_csv(descs, fileobj):
     writer = csv.DictWriter(fileobj, ['profile_url', 'zwiftpower_points',
                                       'date', 'height_change'])
-
     writer.writeheader()
     writer.writerows(
         {**change,
          'zwiftpower_points': desc['zwiftpower_points'],
          'profile_url':
+            f'anon-{i}' if desc['zwiftid'] is None else
              f'https://www.zwiftpower.com/profile.php?z={desc["zwiftid"]}'}
-        for desc in descs
+        for i, desc in enumerate(descs)
         for change in desc['suspicious_profile_changes'])
 
 
@@ -218,9 +221,14 @@ def main():
     if format not in formats:
         raise SystemExit(f'Unknown --format value: {format!r}')
 
-    potential_descriptions = (describe_suspicious_profile(profile)
-                              for profile in stream_profiles(sys.stdin))
-    descs = (d for d in potential_descriptions if d is not None)
+    profiles = stream_profiles(sys.stdin)
+
+    if args['--reencode']:
+        descs = profiles
+    else:
+        potential_descriptions = (describe_suspicious_profile(profile)
+                                  for profile in profiles)
+        descs = (d for d in potential_descriptions if d is not None)
 
     if args['--sort']:
         descs = sorted(descs,

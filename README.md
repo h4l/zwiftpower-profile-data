@@ -45,3 +45,5 @@ appropriate.
   changes.
   Note that reporting weight changes is not currently implemented, but the
   weight data is available. 
+5. `anonymise.py`: Filter a stream of suspicious change description objects from
+   `find_profile_changes.py` to remove identifiable features.
