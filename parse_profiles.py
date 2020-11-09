@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 """
 usage:
-    parse_profiles.py --dir=<profiles-dir>
-    parse_profiles.py <profile-html>...
+    parse_profiles.py [options] --dir=<profiles-dir>
+    parse_profiles.py [options] <profile-html>...
+
+options:
+    --traceback  Print an exception stack trace on errors
 """
 
 import re
 import sys
 import json
 import pathlib
+import traceback
 
 import docopt
 from bs4 import BeautifulSoup
@@ -85,13 +89,16 @@ def parse_alias_row(row):
     }
 
 
-def parse_profiles(paths):
+def parse_profiles(paths, print_traceback=False):
     for path in paths:
         try:
             yield parse_profile(path)
         except ValueError as e:
             print(f'Error: unable to parse profile data from {path}: {e}',
                   file=sys.stderr)
+            if print_traceback:
+                print(file=sys.stderr)
+                traceback.print_exc()
 
 
 def main():
@@ -103,7 +110,8 @@ def main():
         profiles = args['<profile-html>']
 
     # produce stream of whitespace-separate JSON objects, suitable for jq
-    for profile_data in parse_profiles(profiles):
+    for profile_data in parse_profiles(profiles,
+                                       print_traceback=args['--traceback']):
         print(json.dumps(profile_data, indent=None))
 
 
