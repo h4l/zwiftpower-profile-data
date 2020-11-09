@@ -36,7 +36,8 @@ def parse_profile(path):
 def get_zwift_id(html):
     # It appears in a few places, but this is easy enough. There's a bunch of
     # data defined in javascript in the head.
-    js_data = '\n'.join(script.string for script in html.select('head script'))
+    js_data = '\n'.join(script.string for script in html.select('head script')
+                        if script.string is not None)
     match = re.search(r'\bzwift_id *: *[\'"](\d+)[\'"]', js_data)
 
     if not match:
@@ -51,7 +52,7 @@ def get_zp_points(html):
     for tr in html.select('#profile_information tr'):
         th = tr.find('th')
         td = tr.find('td')
-        if th and td and any(s.strip().lower() == 'racing licence' for s in th.findAll(text=True)):
+        if th and td and any(s.strip().lower() == 'race ranking' for s in th.findAll(text=True)):
             match = re.match(r'^(\d+(?:\.\d+)?)', ''.join(s for s in td.findAll(text=True) if s.strip()))
             if match:
                 return float(match.group(1))
@@ -71,21 +72,19 @@ def require_match(regex, string):
 
 
 def parse_alias_row(row):
-    date, time, name, weight, height = [''.join(td.findAll(text=True)).strip() for td in row.find_all('td')]
+    date, name, weight, height = [''.join(td.findAll(text=True)).strip() for td in row.find_all('td')[:4]]
 
-    date_match = require_match(r'^([A-Za-z]{3}) ([\d]{1,2})[a-z]{2}$', date)
-    time_match = require_match(r'^([\d]{2}):([\d]{2})$', time)
+    date_match = require_match(r'^([A-Za-z]{3}) ([\d]{1,2})[a-z]{2} ([0-9]{4})$', date)
     weight_match = require_match(r'^([\d(\.\d+)?]+)kg$', weight)
-    height_match = require_match(r'^([\d]+)cm$', height)
+    height_match = re.match(r'^([\d]+)cm$', height)
 
     return {
+        'year': int(date_match.group(3)),
         'month': date_match.group(1).lower(),
         'day': int(date_match.group(2)),
-        'hour': int(time_match.group(1)),
-        'minute': int(time_match.group(2)),
         'name': name,
         'weight': float(weight_match.group(1)),
-        'height': int(height_match.group(1)),
+        **({'height': int(height_match.group(1))} if height_match else {})
     }
 
 
